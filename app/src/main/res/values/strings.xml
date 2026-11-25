@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">AFI</string>
+    <string name="sign_in_title">Masuk ke AFI</string>
+    <string name="sign_in_subtitle">Kelola penjualan, pembelian, pabrik, kas, penggajian, dan laporan bisnis langsung di perangkat Anda.</string>
+    <string name="nav_beranda">Beranda</string>
+    <string name="nav_transaksi">Transaksi</string>
+    <string name="nav_kontak">Kontak</string>
+    <string name="nav_keuangan">Keuangan</string>
+    <string name="nav_laporan">Laporan</string>
+</resources>

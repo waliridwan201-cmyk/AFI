@@ -1,0 +1,305 @@
+{
+  "entities": {
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Pengaturan profil dan identitas toko AFI milik pengguna.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "storeName": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "receiptFooter": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Must be FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Must be FieldValue.serverTimestamp()" }
+      },
+      "required": ["userId", "storeName", "createdAt", "updatedAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Data master produk beserta harga modal, harga jual, dan stok.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "sku": { "type": "string" },
+        "category": { "type": "string" },
+        "unit": { "type": "string" },
+        "buyPrice": { "type": "number" },
+        "sellPrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "minStock": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "unit", "buyPrice", "sellPrice", "stock", "createdAt", "updatedAt"]
+    },
+    "Merchant": {
+      "title": "Merchant",
+      "description": "Data pedagang keliling atau reseller.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "routeArea": { "type": "string" },
+        "address": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "createdAt", "updatedAt"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Data karyawan pabrik.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "defaultJobTypeId": { "type": "string" },
+        "defaultJobName": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "active", "createdAt", "updatedAt"]
+    },
+    "JobType": {
+      "title": "JobType",
+      "description": "Jenis pekerjaan karyawan pabrik dengan tarif upah yang dapat diubah.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "unit": { "type": "string" },
+        "ratePerUnit": { "type": "number" },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "code", "name", "unit", "ratePerUnit", "createdAt", "updatedAt"]
+    },
+    "Payslip": {
+      "title": "Payslip",
+      "description": "Slip gaji karyawan pabrik yang dapat dicetak dan ditandai sudah/belum dibayar.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "periodLabel": { "type": "string" },
+        "items": { "type": "array" },
+        "bonus": { "type": "number" },
+        "deduction": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "paid": { "type": "boolean" },
+        "cashBoxId": { "type": "string" },
+        "notes": { "type": "string" },
+        "paidAtMillis": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "employeeId", "employeeName", "periodLabel", "items", "totalAmount", "paid", "createdAt", "updatedAt"]
+    },
+    "CashBox": {
+      "title": "CashBox",
+      "description": "Dompet atau laci kas (Cash Box) untuk menyimpan saldo bisnis.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "balance": { "type": "number" },
+        "primaryBox": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "balance", "primaryBox", "createdAt", "updatedAt"]
+    },
+    "CashFlow": {
+      "title": "CashFlow",
+      "description": "Catatan arus uang masuk dan keluar.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "flowType": { "type": "string", "enum": ["IN", "OUT"] },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "cashBoxId": { "type": "string" },
+        "cashBoxName": { "type": "string" },
+        "description": { "type": "string" },
+        "referenceId": { "type": "string" },
+        "transactionDateMillis": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "flowType", "category", "amount", "cashBoxId", "cashBoxName", "transactionDateMillis", "createdAt", "updatedAt"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Transaksi penjualan barang beserta perhitungan laba dan jual rugi.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "invoiceNo": { "type": "string" },
+        "customerName": { "type": "string" },
+        "merchantId": { "type": "string" },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingDebt": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "totalProfit": { "type": "number" },
+        "lossAmount": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["LUNAS", "PIUTANG"] },
+        "cashBoxId": { "type": "string" },
+        "notes": { "type": "string" },
+        "transactionDateMillis": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "invoiceNo", "customerName", "items", "totalAmount", "paidAmount", "remainingDebt", "totalCost", "totalProfit", "lossAmount", "paymentStatus", "transactionDateMillis", "createdAt", "updatedAt"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "Transaksi pembelian stok atau bahan baku dari pemasok.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "invoiceNo": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingDebt": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["LUNAS", "HUTANG"] },
+        "cashBoxId": { "type": "string" },
+        "notes": { "type": "string" },
+        "transactionDateMillis": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "invoiceNo", "supplierName", "items", "totalAmount", "paidAmount", "remainingDebt", "paymentStatus", "transactionDateMillis", "createdAt", "updatedAt"]
+    },
+    "PurchaseReturn": {
+      "title": "PurchaseReturn",
+      "description": "Transaksi retur pembelian ke pemasok.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "purchaseId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "totalRefund": { "type": "number" },
+        "refundMethod": { "type": "string", "enum": ["POTONG_HUTANG", "KEMBALI_KAS"] },
+        "cashBoxId": { "type": "string" },
+        "reason": { "type": "string" },
+        "transactionDateMillis": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "supplierName", "productId", "productName", "quantity", "unitPrice", "totalRefund", "refundMethod", "transactionDateMillis", "createdAt", "updatedAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Transaksi pengeluaran operasional bisnis.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "cashBoxId": { "type": "string" },
+        "cashBoxName": { "type": "string" },
+        "notes": { "type": "string" },
+        "transactionDateMillis": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "category", "amount", "cashBoxId", "cashBoxName", "transactionDateMillis", "createdAt", "updatedAt"]
+    },
+    "DebtRecord": {
+      "title": "DebtRecord",
+      "description": "Catatan hutang pembelian ke pemasok dan piutang pedagang keliling.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "debtType": { "type": "string", "enum": ["HUTANG", "PIUTANG"] },
+        "partyId": { "type": "string" },
+        "partyName": { "type": "string" },
+        "referenceId": { "type": "string" },
+        "invoiceNo": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["BELUM_LUNAS", "CICILAN", "LUNAS"] },
+        "notes": { "type": "string" },
+        "transactionDateMillis": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "debtType", "partyName", "totalAmount", "paidAmount", "remainingAmount", "status", "transactionDateMillis", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/store_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/StoreSettings" },
+      "description": "Pengaturan toko milik pengguna"
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Master data produk milik pengguna"
+    },
+    "/users/{userId}/merchants/{merchantId}": {
+      "schema": { "$ref": "#/entities/Merchant" },
+      "description": "Data pedagang keliling milik pengguna"
+    },
+    "/users/{userId}/employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/Employee" },
+      "description": "Data karyawan pabrik milik pengguna"
+    },
+    "/users/{userId}/job_types/{jobTypeId}": {
+      "schema": { "$ref": "#/entities/JobType" },
+      "description": "Jenis pekerjaan karyawan pabrik beserta tarif upah"
+    },
+    "/users/{userId}/payslips/{payslipId}": {
+      "schema": { "$ref": "#/entities/Payslip" },
+      "description": "Slip gaji karyawan pabrik"
+    },
+    "/users/{userId}/cash_boxes/{cashBoxId}": {
+      "schema": { "$ref": "#/entities/CashBox" },
+      "description": "Cash box / laci kas pengguna"
+    },
+    "/users/{userId}/cash_flows/{flowId}": {
+      "schema": { "$ref": "#/entities/CashFlow" },
+      "description": "Riwayat arus uang masuk dan keluar"
+    },
+    "/users/{userId}/sales/{saleId}": {
+      "schema": { "$ref": "#/entities/Sale" },
+      "description": "Transaksi penjualan"
+    },
+    "/users/{userId}/purchases/{purchaseId}": {
+      "schema": { "$ref": "#/entities/Purchase" },
+      "description": "Transaksi pembelian"
+    },
+    "/users/{userId}/purchase_returns/{returnId}": {
+      "schema": { "$ref": "#/entities/PurchaseReturn" },
+      "description": "Transaksi retur pembelian"
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Transaksi pengeluaran"
+    },
+    "/users/{userId}/debt_records/{debtId}": {
+      "schema": { "$ref": "#/entities/DebtRecord" },
+      "description": "Daftar hutang pembelian dan piutang pedagang"
+    }
+  }
+}

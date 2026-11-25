@@ -1,0 +1,417 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable hardened helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isOptionalNumber(data, key, minVal) {
+      return !(key in data) || (data[key] is number && data[key] >= minVal);
+    }
+
+    // --- Validation Helpers ---
+
+    function isValidStoreSettings(data, userId) {
+      return data.userId == userId &&
+             data.storeName is string && data.storeName.size() >= 1 && data.storeName.size() <= 100 &&
+             isOptionalString(data, 'ownerName', 100) &&
+             isOptionalString(data, 'phone', 40) &&
+             isOptionalString(data, 'address', 300) &&
+             isOptionalString(data, 'receiptFooter', 300) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidProduct(data, userId) {
+      return data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             isOptionalString(data, 'sku', 60) &&
+             isOptionalString(data, 'category', 60) &&
+             data.unit is string && data.unit.size() >= 1 && data.unit.size() <= 30 &&
+             data.buyPrice is number && data.buyPrice >= 0 &&
+             data.sellPrice is number && data.sellPrice >= 0 &&
+             data.stock is number && data.stock >= 0 &&
+             isOptionalNumber(data, 'minStock', 0) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidMerchant(data, userId) {
+      return data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             isOptionalString(data, 'phone', 40) &&
+             isOptionalString(data, 'routeArea', 120) &&
+             isOptionalString(data, 'address', 300) &&
+             isOptionalString(data, 'notes', 500) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidEmployee(data, userId) {
+      return data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             isOptionalString(data, 'phone', 40) &&
+             isOptionalString(data, 'defaultJobTypeId', 128) &&
+             isOptionalString(data, 'defaultJobName', 80) &&
+             data.active is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidJobType(data, userId) {
+      return data.userId == userId &&
+             data.code is string && data.code.size() >= 1 && data.code.size() <= 50 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             data.unit is string && data.unit.size() >= 1 && data.unit.size() <= 30 &&
+             data.ratePerUnit is number && data.ratePerUnit >= 0 &&
+             isOptionalNumber(data, 'sortOrder', 0) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidPayslip(data, userId) {
+      return data.userId == userId &&
+             data.employeeId is string && data.employeeId.size() >= 1 && data.employeeId.size() <= 128 &&
+             data.employeeName is string && data.employeeName.size() >= 1 && data.employeeName.size() <= 100 &&
+             data.periodLabel is string && data.periodLabel.size() >= 1 && data.periodLabel.size() <= 80 &&
+             data.items is list && data.items.size() <= 30 && (data.items.size() == 0 || data.items[0] is map) &&
+             isOptionalNumber(data, 'bonus', 0) &&
+             isOptionalNumber(data, 'deduction', 0) &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.paid is bool &&
+             isOptionalString(data, 'cashBoxId', 128) &&
+             isOptionalString(data, 'notes', 500) &&
+             isOptionalNumber(data, 'paidAtMillis', 0) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidCashBox(data, userId) {
+      return data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             isOptionalString(data, 'description', 200) &&
+             data.balance is number &&
+             data.primaryBox is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidCashFlow(data, userId) {
+      return data.userId == userId &&
+             data.flowType in ['IN', 'OUT'] &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+             data.amount is number && data.amount >= 0 &&
+             data.cashBoxId is string && data.cashBoxId.size() >= 1 && data.cashBoxId.size() <= 128 &&
+             data.cashBoxName is string && data.cashBoxName.size() >= 1 && data.cashBoxName.size() <= 80 &&
+             isOptionalString(data, 'description', 300) &&
+             isOptionalString(data, 'referenceId', 128) &&
+             data.transactionDateMillis is number && data.transactionDateMillis >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSale(data, userId) {
+      return data.userId == userId &&
+             data.invoiceNo is string && data.invoiceNo.size() >= 1 && data.invoiceNo.size() <= 60 &&
+             data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120 &&
+             isOptionalString(data, 'merchantId', 128) &&
+             data.items is list && data.items.size() >= 1 && data.items.size() <= 50 && data.items[0] is map &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.paidAmount is number && data.paidAmount >= 0 &&
+             data.remainingDebt is number && data.remainingDebt >= 0 &&
+             data.totalCost is number && data.totalCost >= 0 &&
+             data.totalProfit is number &&
+             data.lossAmount is number && data.lossAmount >= 0 &&
+             data.paymentStatus in ['LUNAS', 'PIUTANG'] &&
+             isOptionalString(data, 'cashBoxId', 128) &&
+             isOptionalString(data, 'notes', 500) &&
+             data.transactionDateMillis is number && data.transactionDateMillis >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidPurchase(data, userId) {
+      return data.userId == userId &&
+             data.invoiceNo is string && data.invoiceNo.size() >= 1 && data.invoiceNo.size() <= 60 &&
+             data.supplierName is string && data.supplierName.size() >= 1 && data.supplierName.size() <= 120 &&
+             data.items is list && data.items.size() >= 1 && data.items.size() <= 50 && data.items[0] is map &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.paidAmount is number && data.paidAmount >= 0 &&
+             data.remainingDebt is number && data.remainingDebt >= 0 &&
+             data.paymentStatus in ['LUNAS', 'HUTANG'] &&
+             isOptionalString(data, 'cashBoxId', 128) &&
+             isOptionalString(data, 'notes', 500) &&
+             data.transactionDateMillis is number && data.transactionDateMillis >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidPurchaseReturn(data, userId) {
+      return data.userId == userId &&
+             isOptionalString(data, 'purchaseId', 128) &&
+             data.supplierName is string && data.supplierName.size() >= 1 && data.supplierName.size() <= 120 &&
+             data.productId is string && data.productId.size() >= 1 && data.productId.size() <= 128 &&
+             data.productName is string && data.productName.size() >= 1 && data.productName.size() <= 120 &&
+             data.quantity is number && data.quantity > 0 &&
+             data.unitPrice is number && data.unitPrice >= 0 &&
+             data.totalRefund is number && data.totalRefund >= 0 &&
+             data.refundMethod in ['POTONG_HUTANG', 'KEMBALI_KAS'] &&
+             isOptionalString(data, 'cashBoxId', 128) &&
+             isOptionalString(data, 'reason', 500) &&
+             data.transactionDateMillis is number && data.transactionDateMillis >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidExpense(data, userId) {
+      return data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+             data.amount is number && data.amount > 0 &&
+             data.cashBoxId is string && data.cashBoxId.size() >= 1 && data.cashBoxId.size() <= 128 &&
+             data.cashBoxName is string && data.cashBoxName.size() >= 1 && data.cashBoxName.size() <= 80 &&
+             isOptionalString(data, 'notes', 500) &&
+             data.transactionDateMillis is number && data.transactionDateMillis >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidDebtRecord(data, userId) {
+      return data.userId == userId &&
+             data.debtType in ['HUTANG', 'PIUTANG'] &&
+             isOptionalString(data, 'partyId', 128) &&
+             data.partyName is string && data.partyName.size() >= 1 && data.partyName.size() <= 120 &&
+             isOptionalString(data, 'referenceId', 128) &&
+             isOptionalString(data, 'invoiceNo', 60) &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.paidAmount is number && data.paidAmount >= 0 &&
+             data.remainingAmount is number && data.remainingAmount >= 0 &&
+             data.status in ['BELUM_LUNAS', 'CICILAN', 'LUNAS'] &&
+             isOptionalString(data, 'notes', 500) &&
+             data.transactionDateMillis is number && data.transactionDateMillis >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // --- Collection Rules under /users/{userId} ---
+
+    match /users/{userId} {
+      allow read, write: if false;
+
+      match /store_settings/{settingId} {
+        allow get: if isOwner(userId) && isValidId(settingId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(settingId) &&
+                         incoming().keys().hasAll(['userId', 'storeName', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'storeName', 'ownerName', 'phone', 'address', 'receiptFooter', 'createdAt', 'updatedAt']) &&
+                         isValidStoreSettings(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(settingId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidStoreSettings(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['storeName', 'ownerName', 'phone', 'address', 'receiptFooter', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(settingId);
+      }
+
+      match /products/{productId} {
+        allow get: if isOwner(userId) && isValidId(productId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(productId) &&
+                         incoming().keys().hasAll(['userId', 'name', 'unit', 'buyPrice', 'sellPrice', 'stock', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'name', 'sku', 'category', 'unit', 'buyPrice', 'sellPrice', 'stock', 'minStock', 'createdAt', 'updatedAt']) &&
+                         isValidProduct(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(productId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidProduct(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'sku', 'category', 'unit', 'buyPrice', 'sellPrice', 'stock', 'minStock', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(productId);
+      }
+
+      match /merchants/{merchantId} {
+        allow get: if isOwner(userId) && isValidId(merchantId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(merchantId) &&
+                         incoming().keys().hasAll(['userId', 'name', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'name', 'phone', 'routeArea', 'address', 'notes', 'createdAt', 'updatedAt']) &&
+                         isValidMerchant(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(merchantId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidMerchant(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'routeArea', 'address', 'notes', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(merchantId);
+      }
+
+      match /employees/{employeeId} {
+        allow get: if isOwner(userId) && isValidId(employeeId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(employeeId) &&
+                         incoming().keys().hasAll(['userId', 'name', 'active', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'name', 'phone', 'defaultJobTypeId', 'defaultJobName', 'active', 'createdAt', 'updatedAt']) &&
+                         isValidEmployee(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(employeeId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidEmployee(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'defaultJobTypeId', 'defaultJobName', 'active', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(employeeId);
+      }
+
+      match /job_types/{jobTypeId} {
+        allow get: if isOwner(userId) && isValidId(jobTypeId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(jobTypeId) &&
+                         incoming().keys().hasAll(['userId', 'code', 'name', 'unit', 'ratePerUnit', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'code', 'name', 'unit', 'ratePerUnit', 'sortOrder', 'createdAt', 'updatedAt']) &&
+                         isValidJobType(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(jobTypeId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidJobType(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['code', 'name', 'unit', 'ratePerUnit', 'sortOrder', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(jobTypeId);
+      }
+
+      match /payslips/{payslipId} {
+        allow get: if isOwner(userId) && isValidId(payslipId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(payslipId) &&
+                         incoming().keys().hasAll(['userId', 'employeeId', 'employeeName', 'periodLabel', 'items', 'totalAmount', 'paid', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'employeeId', 'employeeName', 'periodLabel', 'items', 'bonus', 'deduction', 'totalAmount', 'paid', 'cashBoxId', 'notes', 'paidAtMillis', 'createdAt', 'updatedAt']) &&
+                         isValidPayslip(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(payslipId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidPayslip(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['employeeId', 'employeeName', 'periodLabel', 'items', 'bonus', 'deduction', 'totalAmount', 'paid', 'cashBoxId', 'notes', 'paidAtMillis', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(payslipId);
+      }
+
+      match /cash_boxes/{cashBoxId} {
+        allow get: if isOwner(userId) && isValidId(cashBoxId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(cashBoxId) &&
+                         incoming().keys().hasAll(['userId', 'name', 'balance', 'primaryBox', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'name', 'description', 'balance', 'primaryBox', 'createdAt', 'updatedAt']) &&
+                         isValidCashBox(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(cashBoxId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidCashBox(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'balance', 'primaryBox', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(cashBoxId);
+      }
+
+      match /cash_flows/{flowId} {
+        allow get: if isOwner(userId) && isValidId(flowId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(flowId) &&
+                         incoming().keys().hasAll(['userId', 'flowType', 'category', 'amount', 'cashBoxId', 'cashBoxName', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'flowType', 'category', 'amount', 'cashBoxId', 'cashBoxName', 'description', 'referenceId', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         isValidCashFlow(incoming(), userId);
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(flowId);
+      }
+
+      match /sales/{saleId} {
+        allow get: if isOwner(userId) && isValidId(saleId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(saleId) &&
+                         incoming().keys().hasAll(['userId', 'invoiceNo', 'customerName', 'items', 'totalAmount', 'paidAmount', 'remainingDebt', 'totalCost', 'totalProfit', 'lossAmount', 'paymentStatus', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'invoiceNo', 'customerName', 'merchantId', 'items', 'totalAmount', 'paidAmount', 'remainingDebt', 'totalCost', 'totalProfit', 'lossAmount', 'paymentStatus', 'cashBoxId', 'notes', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         isValidSale(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(saleId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidSale(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['paidAmount', 'remainingDebt', 'paymentStatus', 'notes', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(saleId);
+      }
+
+      match /purchases/{purchaseId} {
+        allow get: if isOwner(userId) && isValidId(purchaseId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(purchaseId) &&
+                         incoming().keys().hasAll(['userId', 'invoiceNo', 'supplierName', 'items', 'totalAmount', 'paidAmount', 'remainingDebt', 'paymentStatus', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'invoiceNo', 'supplierName', 'items', 'totalAmount', 'paidAmount', 'remainingDebt', 'paymentStatus', 'cashBoxId', 'notes', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         isValidPurchase(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(purchaseId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidPurchase(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['paidAmount', 'remainingDebt', 'paymentStatus', 'notes', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(purchaseId);
+      }
+
+      match /purchase_returns/{returnId} {
+        allow get: if isOwner(userId) && isValidId(returnId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(returnId) &&
+                         incoming().keys().hasAll(['userId', 'supplierName', 'productId', 'productName', 'quantity', 'unitPrice', 'totalRefund', 'refundMethod', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'purchaseId', 'supplierName', 'productId', 'productName', 'quantity', 'unitPrice', 'totalRefund', 'refundMethod', 'cashBoxId', 'reason', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         isValidPurchaseReturn(incoming(), userId);
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(returnId);
+      }
+
+      match /expenses/{expenseId} {
+        allow get: if isOwner(userId) && isValidId(expenseId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(expenseId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'category', 'amount', 'cashBoxId', 'cashBoxName', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'category', 'amount', 'cashBoxId', 'cashBoxName', 'notes', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         isValidExpense(incoming(), userId);
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(expenseId);
+      }
+
+      match /debt_records/{debtId} {
+        allow get: if isOwner(userId) && isValidId(debtId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(debtId) &&
+                         incoming().keys().hasAll(['userId', 'debtType', 'partyName', 'totalAmount', 'paidAmount', 'remainingAmount', 'status', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'debtType', 'partyId', 'partyName', 'referenceId', 'invoiceNo', 'totalAmount', 'paidAmount', 'remainingAmount', 'status', 'notes', 'transactionDateMillis', 'createdAt', 'updatedAt']) &&
+                         isValidDebtRecord(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(debtId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().debtType == existing().debtType &&
+                         isValidDebtRecord(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['paidAmount', 'remainingAmount', 'status', 'notes', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(debtId);
+      }
+    }
+  }
+}

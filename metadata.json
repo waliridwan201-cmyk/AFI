@@ -1,0 +1,6 @@
+{
+  "name": "AFI",
+  "description": "Aplikasi manajemen bisnis, pabrik, kas, penggajian, dan laporan keuangan AFI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
